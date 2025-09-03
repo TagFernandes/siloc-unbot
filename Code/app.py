@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, g ,Response
 import time
 import os
 import json
+from functools import wraps
 
 
 # 1. --- Imports do OpenTelemetry ---
@@ -129,6 +130,44 @@ def readConfig():
         configuracoes = json.load(arquivo)
     return configuracoes
 
+def readSecrets():
+    with open("secrets_acess.json", 'r', encoding='utf-8') as arquivo:
+        secrets = json.load(arquivo)
+    return secrets
+
+##############################################################################################################################
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # Verifica se o cabeçalho de autorização foi enviado
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            try:
+                # Extrai o token do formato "Bearer <token>"
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                logger.warning("Formato de token malformado")
+                return jsonify({"mensagem": "Formato de token malformado"}), 401
+        
+        if not token:
+            logger.warning("Token ausente")
+            return jsonify({"mensagem": "Token ausente"}), 401
+        
+        authorized_acess = readSecrets()
+        if (token not in authorized_acess):
+            print("token_invalido")
+            logger.warning("Token inválido")
+            return jsonify({"mensagem": "Token inválido"}), 401
+        logger.info(f"Token válido: {authorized_acess[token]}")
+        print(f"Token válido: {authorized_acess[token]}")
+
+        return f(*args, **kwargs)
+    return decorated
+
+        
 def controle_navegadores(modifyNumber=0):
     global NAVEGADORES_ATIVOS
     
@@ -149,6 +188,7 @@ def controle_navegadores(modifyNumber=0):
 
 
 @app.route('/check-login', methods=['POST'])
+@token_required
 def check_login():
     if not request.is_json:
         logger.warning("Requisicao mal formatada")
@@ -174,8 +214,8 @@ def check_login():
     controle_navegadores(-1)
 
     if (resultado == 0):
-        logger.info("Senha validada: senha incorreta")
-        return jsonify({"status": "senha incorreta"}), 401
+        logger.info("Senha validada: senha ou usuario incorretos")
+        return jsonify({"status": "senha ou usuario incorretos"}), 401
     elif (resultado == 1):
         logger.info("Senha validada: senha correta")
         return jsonify({"status": "senha correta"}), 200
@@ -189,6 +229,7 @@ def check_login():
 
 
 @app.route("/chave-publica", methods=['GET'])
+@token_required
 def obter_chave_publica():
     """
     Endpoint que lê o arquivo da chave pública e o retorna em um formato JSON.

@@ -3,11 +3,19 @@ import json
 import base64
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
+import os
+from dotenv import load_dotenv
 
-SERVER_URL = 'https://siloc.unbot.com.br'
+load_dotenv()
+SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
+TOKEN_API = os.getenv('TOKEN_API')
 
-matricula_usuario = '221030885'
+matricula_usuario = '221030886'
 senha_usuario = 'teste1234'
+
+headers = {
+    'Authorization': f'Bearer {TOKEN_API}'
+}
 
 def criptografar(mensagem: str, chave_publica_pem: str) -> str:
     """
@@ -41,7 +49,7 @@ def main():
     # 1. Obter a chave pública do servidor
     try:
         print(f"1. Solicitando chave pública de {SERVER_URL}/chave-publica...")
-        resposta_chave = requests.get(f"{SERVER_URL}/chave-publica")
+        resposta_chave = requests.get(f"{SERVER_URL}/chave-publica", headers=headers)
         resposta_chave.raise_for_status()
         
         chave_publica_servidor = resposta_chave.json()['chave_publica']
@@ -68,7 +76,7 @@ def main():
     print(f"   Payload a ser enviado: {json.dumps(payload_final, indent=2)}")
     
     try:
-        resposta_login = requests.post(f"{SERVER_URL}/check-login", json=payload_final)
+        resposta_login = requests.post(f"{SERVER_URL}/check-login", json=payload_final, headers=headers)
         
         # 4. Exibir a resposta do servidor
         print("\n--- Resposta do Servidor ---")

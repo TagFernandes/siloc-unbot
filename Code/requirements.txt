@@ -7,3 +7,4 @@ opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-instrumentation-flask
 loki-logger-handler
 prometheus_client
+python-dotenv
