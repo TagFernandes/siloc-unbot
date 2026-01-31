@@ -13,7 +13,7 @@ Para rodar o sistema, siga os passos abaixo:
    ```bash
    pip install -r requirements.txt
 
-1. **Execute:**
+2. **Execute:**
    ```bash
    python3 app.py
 
